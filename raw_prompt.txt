@@ -1,0 +1,674 @@
+MathJSON is a lightweight data interchange format for mathematical notation.
+
+A MathJSON expression is a combination of numbers, symbols, strings, functions and dictionaries.
+
+Numbers can be represented as literals, scientific notation, or dicts, for example:
+- 3.14
+- 314e-2
+- {"num": "3.14159265358979323846264338327950288419716939937510"}
+- {"num": "-Infinity"}
+
+Symbols are understood as well, and can be placeholders or symbols representating fixed values, e.g.:
+- "x"
+- "Pi"
+- "🍎 "
+- "半径"
+- {"sym": "Pi", "wikidata": "Q167"}
+
+Strings can be used as well, e.g.:
+- "'Diameter of a circle'"
+- {"str": "Srinivasa Ramanujan"}
+
+Functions can be represented as either flat arrays, or dictionaries, e.g.:
+- ["Add", 1, "x"]
+- {"fn": [{sym: "Add"}, {num: "1"}, {sym: "x"}]}
+
+Dictionaries are also supported:
+- {"dict": {"hello": 3,"world": ["Add", 5, 7]}}
+
+Numbers, symbols, strings and functions are expressed either as object literals with a "num"  "str"  "sym"  or "fn"  key, respectively, or using a shorthand notation as a a JSON number, string or array.
+
+Dictionaries do not have a shorthand notation and are always expressed as an object literal with a "dict"  key.
+
+The shorthand notation is more concise and easier to read, but it cannot include metadata properties.
+
+Numbers
+
+A MathJSON number is either: an object literal with a "num" key, a JSON number, a JSON string starting with + , -  or the digits 0 - 9.
+
+The string representing a number follows the JSON syntax for number (https://tools.ietf.org/html/rfc7159#section-6), with the following differences:
+- The range or precision of MathJSON numbers may be greater than the range and precision supported by IEEE 754 (https://en.wikipedia.org/wiki/IEEE_754) 64-bit float.
+- The string values "NaN"  "+Infinity"  and "-Infinity"  are used to represent respectively an undefined result, as per IEEE 754 (https://en.wikipedia.org/wiki/IEEE_754), positive infinity and negative infinity.
+- If the string includes the pattern /\([0-9]+\)/  (that is a series of one or more digits enclosed in parentheses), that pattern should be interpreted as repeating digits.
+- { "num": "1.(3)" }
+- { "num": "0.(142857)" }
+- { "num": "0.(142857)e7" }
+
+When a number has no extra metadata and is compatible with the JSON representation of numbers, a JSON number literal may be used.
+
+Specifically: the number is in the range  so it fits in a 64-bit float (IEEE 754-2008, 52-bit, about 15 digits of precision).
+
+The numbers below may not be represented as JSON number literals:
+- Exponent out of bounds: { "num": "5.78e309" }
+- Too many digits: { "num": "3.14159265358979323846264338327950288419716" }
+- Non-finite number: { "num": "-Infinity" }
+
+An alternate representation of a number with no extra metadata is as a string following the format described above.
+- "3.14159265358979323846264338327950288419716"
+- "+Infinity"
+
+A MathJSON symbol is either:
+- an object literal with a "sym"  key
+- a JSON string
+
+Symbols are identifiers that represent the name of variables, constants and wildcards.
+
+A MathJSON function expression is either:
+- an object literal with a "fn"  key.
+- a JSON array
+
+Function expressions in the context of MathJSON may be used to represent mathematical functions but are more generally used to represent the application of a function to some arguments.
+
+The function expression ["Add", 2, 3]  applies the function named Add to the arguments 2  and 3 .
+
+The function "f"  can be used as a symbol, or in a function expression: ["f", "x"] .
+
+The default representation of function expressions is an object literal with a "fn"  key. The value of the key is an array representing the function head and its arguments.
+{ "fn": [ Expression, Expression[]] }
+
+If a function has no extra metadata it may be represented as a JSON array.
+
+For example these two expressions are equivalent:
+- { "fn": ["Cos", ["Add", "x", 1]] }
+- ["Cos", ["Add", "x", 1]]
+
+An array representing a function must have at least one element, the head of the function. Therefore []  is not a valid expression.
+
+The head of the function expression is the first element in the array. Its presence is required. It indicates the name of the function or “what” the function is about.
+
+The head is usually an identifier, but it may also be another expression.
+
+If the head is an identifier, it should follow the conventions for function names (see below).
+
+Examples:
+- Apply the function "Sin" to the argument "x": ["Sin", "x"]
+- Apply "Cos" to a function expression: ["Cos", ["Divide", "Pi", 2]]
+
+If the head is an expression, it may include the wildcard _  or _1  to represent the first argument, _2  to represent the second argument, etc… The wildcard __ represents the sequence of all the arguments.,
+For example, to multiple 4 by itself: [["Multiply", "_", "_"], 4]
+
+Following the head are zero or more arguments, which are expressions as well. The arguments, or operands, form the tail of the function.
+
+CAUTION the arguments of a function are expressions. To represent an argument which is a list, use a ["List"]  expression, do not use an array.
+
+[["InverseFunction", "Sin"], "x"]
+
+The head of this expression is ["InverseFunction", "Sin"]  and its argument is "x" .
+
+Wildcards:
+"_" Wildcard for a single expression or for the first positional argument
+"_1" Wildcard for a positional argument
+“_ _” Wildcard for a sequence of 1 or more expression
+"___" Wildcard for a sequence of 0 or more expression
+"_a" Capturing an expression as a wildcard named a
+
+If a variable is made of several words, use camelCase. For example "newDeterminant"
+
+Prefer clarity over brevity and avoid obscure abbreviations.
+
+Use "newDeterminant"  rather than "newDet"  or "nDet"
+
+Constants Naming Convention
+If using latin characters, the first character of a constant should be an uppercase letter A - Z
+
+If a constant name is made up of several words, use camelCase. For example "SpeedOfLight"
+
+Function Names Naming Convention
+The name of the functions in the standard library starts with an uppercase letter A - Z . For example "Sin" ,
+"Fold" .
+
+The name of your own functions can start with a lowercase or uppercase letter.
+
+If a function name is made up of several words, use camelCase. For example "InverseFunction"
+
+Supported modifier latex (first column is what MathJSON supports, second column is the LaTeX equivalent)
+_deg \degree
+_prime {}^\prime
+_dprime {}^\doubleprime
+_ring \mathring{}
+_hat \hat{}
+_tilde \tilde{}
+_vec \vec{}
+_bar \overline{}
+_underbar \underline{}
+_dot \dot{}
+_ddot \ddot{}
+_tdot \dddot{}
+_qdot \ddddot{}
+_operator \operatorname{}
+_upright \mathrm{}
+_italic \mathit{}
+_bold \mathbf{}
+_doublestruck \mathbb{}
+_fraktur \mathfrak{}
+_script \mathsc{}
+alpha \alpha
+beta \beta
+gamma \gamma
+delta \delta
+epsilon \epsilon
+epsilonSymbol \varepsilon
+zeta \zeta
+eta \eta
+theta \theta
+thetaSymbol \vartheta
+iota \iota
+kappa \kappa
+kappaSymbol \varkappa
+mu \mu
+nu \nu
+xi \xi
+omicron \omicron
+piSymbol \varpi
+rho \rho
+rhoSymbol \varrho
+sigma \sigma
+finalSigma \varsigma
+tau \tau
+phi \phi
+phiLetter \varphi
+upsilon \upsilon
+chi \chi
+psi \psi
+omega \omega
+Alpha \Alpha
+Beta \Beta
+Gamma \Gamma
+Delta \Delta
+Epsilon \Epsilon
+Zeta \Zeta
+Eta \Eta
+Theta \Theta
+Iota \Iota
+Kappa \Kappa
+Lambda \Lambda
+Mu \Mu
+Nu \Nu
+Xi \Xi
+Omicron \Omicron
+Pi \Pi
+Rho \Rho
+Sigma \Sigma
+Tau \Tau
+Phi \Phi
+Upsilon \Upsilon
+Chi \Chi
+Psi \Psi
+Omega \Omega
+digamma \digamma
+aleph \aleph
+lambda \lambda
+bet \beth
+gimel \gimel
+dalet \dalet
+ell \ell
+turnedCapitalF \Finv
+turnedCapitalG \Game
+weierstrass \wp
+eth \eth
+invertedOhm \mho
+hBar \hbar
+hSlash \hslash
+blacksquare \hslash
+bottom \bot
+bullet \bullet
+circle \circ
+diamond \diamond
+times \times
+top \top
+square \square
+star \star
+
+The following names, when used as a subscript or superscript, may be replaced with a corresponding LaTeX command:
+Subscript/Supscript LaTeX
+plus {}_{+}  / {}^{+}
+minus {}_{-}  / {}^{-}
+pm {}_\pm  / {}^\pm
+ast {}_\ast  / {}^\ast
+dag {}_\dag  / {}^\dag
+ddag {}_\ddag  {}^\ddag
+hash {}_\#  {}^\#
+
+Multi-letter identifiers may be rendered with a \mathit{} , \mathrm{}  or \operatorname{}  command.
+
+Identifier fragments ending in digits may be rendered with a corresponding subscript.
+
+Identifier LaTeX
+time \mathrm{time}
+speed_italic \mathit{speed}
+P_blackboard__plus \mathbb{P}^{+}
+alpha \alpha
+mu0 \mu_{0}
+m56 m_{56}
+c_max \mathrm{c_{max}}
+
+Arithmetic Constants can be used as well:
+- ExponentialE: Eulerʼs number (https://www.wikidata.org/wiki/Q82435)
+- MachineEpsilon: The difference between 1 and the next larger floating point number.
+- CatalanConstant: Catalanʼs Constant on Wikipedia (https://en.wikipedia.org/wiki/Catalan%27s_constant)
+- GoldenRatio: Golden Ratio on Wikipedia (https://en.wikipedia.org/wiki/Golden_ratio)
+- EulerGamma: Euler-Mascheroni Constant on Wikipedia (https://en.wikipedia.org/wiki/Euler%E2%80%93Mascheroni_constant)
+
+Relational Operators can be used as well:
+- Equal
+- Greater
+- GreaterEqual
+- Less
+- LessEqual
+- NotEqual
+
+Functions are also available for use:
+- Add: addition
+- Subtract: subtraction
+- Negate: additive inverse
+- Multiply; multiplication
+- Divide: divide
+- Power: exponentiation
+- Root: n-th root
+- Sqrt: square root
+- Square: multiple a number by itself
+
+Transcendental Functions"
+- Exp: exponential function
+- Ln: logarithm of base b, function, default base 10
+- Lb: binary logarithm function (base-2 logarithm)
+- Lg: common logarithm, the base-10 logarithm
+- LogOnePlus: ln(x + 1)
+
+Rounding functions:
+- Abs: absolute value
+- Ceil: rounds a number up to the next largest integer
+- Chop: replace real numbers that are very close to 0 (less than 10^-10) with 0
+- Floor: round a number to the greatest integer less than the input value
+- Round: round a number to the nearest integer
+- BaseForm: format an integer in a specific base, such as hexadecimal or binary.
+- Clamp: if _value_  is less than _lower_ , evaluate to _lower_, if _value_  is greater than _upper_ , evaluate to _upper_, otherwise evaluate to _value, If _lower_  and _upper_  are not provided, they take the default values of -1 and +1.
+- ["Max", , , ...]: If all the arguments are real numbers, excluding NaN , evaluate to the largest of the arguments.
+- Rational: evaluate to a rational approximating the value of the number _n_, or ["Rational", numerator, denominator] to represent a rational number equal to numerator  over denominator
+
+Calculus Functions:
+- [“Integrate”, expression]
+- [“Integrate”, expression, symbol]
+- ["Integrate", ["Sin", "x"], "x"]
+- [“Integrate”, expression, predicate]
+
+Definite integral.
+- ["Integrate", ["Sin", "x"], ["Element", "x", ["Interval", 0, +Infinity]]]
+- [“Integrate”, expression, predicate1, predicate2…]
+
+Multiple integral.
+- ["Integrate", ['"Multiply", "x", ["Sin", "y"]], ["Element", "x", ["Interval", 0, 2]], ["Element", "y", ["Interval", 0, 1]]]
+
+LaTeX as MathJSON examples:
+\int f dx  -> [“Integrate”, “f”, “x”]
+\int\int f dxdy  -> [“Integrate”, “f”, “x”, “y”]
+Note: ["Integrate", ["Integrate", "f" , "x"], "y"]  is equivalent to ["Integrate", "f" , "x", "y"]
+\int_{a}^{b} f dx  -> [“Integrate”, f, [x, a, b]] \int_{c}^{d} \int_{a}^{b} f dxdy  -> [“Integrate”, “f”, [“Triple”, “x”, “a”, “b”], [“Triple”, “y”, “c”, “d”]]
+\int_{a}^{b}\frac{dx}{f}  -> [“Integrate”, [“Power”, “f”, -1], [“Triple”, “x”, “a”, “b”]]
+\int_{a}^{b}dx f  -> [“Integrate”, “f”, [“Triple”, “x”, “a”, “b”]]
+\int_{x\in D}  -> [“Integrate”, f, [“In”, x, D]]
+\oint f dx  -> ["ContourIntegral", "f", "x"]
+\varointclockwise f dx  -> ["ClockwiseContourIntegral", "f", "x"]
+\ointctrclockwise f dx  -> ["CounterclockwiseContourIntegral", "f", "x"]
+\oiint f ds  -> ["DoubleCountourIntegral", "f", "s"]  : integral over closed surfaces
+\oiiint  f dv -> ["TripleCountourIntegral", "f", "v"]  : integral over closed volumes
+
+Collections are used to represent data structures.
+
+A frequently used collection is the List which is used to represent an ordered sequence of elements.
+
+["List", 42, 3.14, "x", "y"]
+
+Lists can be used to represent vectors.
+["List", 1, 2, 3] == \lbrack 1, 2, 3 \rbrack
+
+A list of lists can be used to represent a matrix.
+
+["List", ["List", 1, 2, 3], ["List", 4, 5, 6], ["List", 7, 8, 9]] == \lbrack \lbrack 1, 2, 3 \rbrack, \lbrack 4, 5, 6 \rbrack, \lbrack 7, 8, 9
+
+Another common collection is the Range operator, which is used to represent a sequence of numbers.
+["Range", 1, 10] == \lbrack 1..10 \rbrack
+
+Collection operations such as IsEmpty , Take , IndexOf  can be applied to any collection types.
+["Take", ["List", 2, 5, 7], 2] produces 5
+["Take", ["Range", 2, 10], 5] produces 7
+
+Collection Types
+
+["Range", lower, upper, step]: An ordered collection of elements between lower and upper, using step.
+["Range", lower, upper]: same, step defaults to 1
+["Range", upper]: same, but lower is assumed to be 1
+
+"Linspace" is similar to Range, but count is specified instead of step, where count defaults to 50.
+["Linspace", lower, upper, count]
+["Linspace", lower, upper]
+["Linspace", upper]
+
+["Set", .., .., ]: unordered collection of items
+
+["Length", ["List", ..., ..., ]]: Returns the length of the specified collection.
+
+["IsEmpty", ["List", ..., ..., ]]: Checks if the collection is empty.
+
+["Take", , ]{.signature} ["Take", , , ]
+
+Returns a list of the elements at the specified indexes.
+
+["Take", ["List", 5, 2, 10, 18], 2] produces 10
+
+["Take", ["List", 5, 2, 10, 18], -2, 1] produces ["List", 10, 5]
+
+["Take", ["List", 5, 2, 10, 18], ["Tuple", 2, 3]] produces ["List", 10, 18]
+
+The elements are returned in the order in which theyʼre specified. Using negative indexes (or ranges) reverses the order of the elements.
+
+["Drop", collection, range] - the opposite of take, returning a list of elements that are not at the specified indices.
+
+["Drop", ["List", 5, 2, 10, 18], ["Tuple", 1, -1, 2]] produces ["List", 2, 18]
+
+["First", collection] returns the first element of the collection, which is the equivalent to ["Take", _collection_, 1
+
+["Second", collection] returns the second element
+
+["Last", collection] return the last element of the collection
+
+["Rest", collection, index] returns all items after index
+
+["Rest", ["List", 5, 2, 10, 18]] produces ["List", 2, 10, 18]
+
+["Most", collection, index] returns everything but the last element of the collection
+
+["Reverse", collection] return the collection in reverse order
+
+Control Structures
+
+Control Structures define how a sequence of expressions is evaluated
+
+A ["Block"]  expression defines a sequential control structure
+
+An ["If"]  expression defines a conditional control structure.
+
+A ["FixedPoint"] , ["Loop"] , ["Sum"]  or ["Product"]  expression defines an iterative control structure.
+
+["Block", expression-1, ...expression-n]
+
+The evaluation of a ["Block"]  expression follows these steps:
+1. Create a new scope
+2. Set the value of the symbols in _dictionary_  in this scope.
+  The dictionary argument can be a ["Dictionary"]  expression, a ["KeyValuePair"]  expression, a ["Pair"]  expression or a ["Tuple"]  expression.
+3. Evaluate each expr sequentially.
+
+If the value of an expression is a ["Return"]  expression, a ["Break"]  expression or a ["Continue"] expression, no more expressions are evaluated and the value of the ["Block"]  is this expression.
+
+Otherwise, the value of the ["Block"]  expression is the value of the last expression
+
+["Block", ["Tuple", "c", 5], ["Multiply", "c", 2]] produces 10
+
+["If", condition, expression]: If the value of _condition_  is the symbol True , the value of the ["If"]  expression is expression, otherwise Nothing.
+
+["If", condition, expression-1, expression-2]: If the value of conditio_ is the symbol True, the value of the ["If"]  expression is expression-1, otherwise expression-2.
+
+["Value", "n", -10]
+["If", ["Greater", "n", 0], "n", ["Negate", "n"]] would produce 10
+
+Loops
+
+The Fold, Loop, Sum Product functions are iteration control structures that share a similar form.
+
+Their first argument, body is an expression that gets evaluated repeatedly. The body expression is evaluated with an implicit argument _  whose value is the current iteration element.
+
+["Fold", body, iterator] or ["Fold", body, initial value, iterator]: evaluate to [_body_, [_body_, _initial-value_, _elem-1_], _elem-2]] ... where elem-1 and elem-2 are the first two elements from the iterator.
+
+["Fold", "Multiply", ["List", 5, 7, 11]] produces 385
+
+See above for the definition of iterator.
+
+["Loop", ] repeatedly evaluate _body_  until the last element of the iterator is reached.
+
+To exit the loop early, body should evaluate to a ["Break"]  expression, a ["Continue"]  expression or a ["Return"] expression.
+
+["Loop", ["Function", "x", ["Print", ["Square", "x"]]], ["Range", 5]] would print 1 4 9 16 25
+
+["Product", iterator]: evaluate to a product of all the elements in _iterator_ . If all the elements are numbers, the result is a number, otherwise it is a simplified list.
+
+["Product", ["List", 5, 7, 11]] produces 385
+
+["Sum", iterator] Evaluate to a sum of all the elements in _iterator_ . If all the elements are numbers, the result is a number.
+Otherwise it is a simplified list.
+
+Equivalent to ["Fold", "Add", _iterator_] .
+
+["Sum", ["List", 5, 7, 11]] produces 23
+
+To control the flow of a loop expression, use ["Break"]  and ["Continue"] .
+
+["Break"]: when in a block, exit the block immediately.
+
+["Continue" ]: when in a loop, skip to the next iteration of the loop.
+
+Assignment, Declaration and Assumptions:
+["Assume", symbol, value]: the predicate is an expression that evaluates to true or false.  The symbols or functions in the expression may be free.
+
+The predicate can take the form of an equality, an inequality or a membership expression:
+
+["Assume", ["Equal", "x", 3]]
+
+["Assume", ["Greater", "x", 0]]
+
+["Assume", ["Element", "x", "Integer"]]
+
+["Let", symbol, value]: define a new symbol in the current scope, and set its value
+
+If the symbol already has a definition in the current scope, evaluate to an error, otherwise evaluate to value. To change the value of an existing symbol, use a ["Set"]  expression.
+
+[“Let”, function-expression, value]
+
+Define a new function in the current scope. The name of the function and its arguments are provided by the function expression. The value is an expression using the arguments from function-expression .
+
+For example, to define `f(x) = x + 1`, use: ["Let", ["f", "x"], ["Add", "x", 1]]
+
+Another example, to define f(n) = 2n, where n is an integer: ["Let", ["f", ["Tuple", "n", "Integer]], ["Multiply", "n", 2]]
+
+["Set", symbol, value]: set the value of symbol to value.
+
+If symbol  does not exist in the current context, consider parent scopes until a definition for the symbol is found.
+
+If there is no definition for the symbol, evaluate to an error, otherwise evaluate to value. To define a new symbol, use a ["Let"]  expression.
+
+["Evaluate", expression]: apply a sequence of definitions to an expression in order to reduce, simplify and calculate its value. Overrides Hold  and hold attributes of a function.
+
+Domains available:
+AlgebraicNumber: Numbers that are the root of a polynomial
+ComplexNumber: Real or imaginary numbers
+Integer: Whole numbers and their additive inverse
+NegativeInteger: Integers < 0
+NegativeNumber: Real numbers < 0
+NonNegativeInteger: Integers >= 0
+NonNegativeNumber: Real numbers >= 0
+NonPositiveInteger: Integers <= 0
+NonPositiveNumber: Real numbers <= 0
+Number: Any number, real or complex
+PositiveInteger: Integers > 0
+PositiveNumber: Real numbers > 0
+RationalNumber: Numbers which can be expressed as the quotient p/q of two integers p and q.
+RealNumber: Numbers that form the unique Dedekind-complete ordered field, up to an isomorphism
+TranscendentalNumber: Real numbers that are not algebraic
+
+Function Domains:
+ContinuousFunction A continuous function (https://en.wikipedia.org/wiki/Continuous_function) is a function that has no abrupt change in value (no discontinuity). The Weirestrass function (https://en.wikipedia.org/wiki/Weierstrass_function) is
+continuous, but not differentiable
+TranscendentalFunction A function not expressible as a finite combination of the algebraic operations of addition, subtraction, multiplication, division, raising to a power, and extracting a root. Example: “Log”, “Sin”…
+AlgebraicFunction A function that can be defined as the root of a polynomial equation
+PeriodicFunction A function that repeats its values at regular intervals
+TrigonometricFunction Real functions which relate an angle of a right-angled triangle to ratios of two side lengths
+HyperbolicFunction
+MonotonicFunction A function that is either entirely non-increasing, or entirely non-decreasing
+StrictMonotonicFunction
+DifferentiableFunction A function whose derivative exists at each point in its domain
+InfinitelyDifferentiableFunction
+RationalFunction A function that can be expressed as the ratio of two polynomials
+PolynomialFunction A function expressed only with the operations of addition, subtraction, multiplication, and non-negative integer exponentiation
+QuadraticFunction A function of the form x -> ax^2 + bx + c
+LinearFunction A function that is the product of an argument plus a constant: x -> ax + b
+ConstantFunction A function that always return the same value x -> c
+MonotonicFunction
+StrictMonotonicFunction
+Predicate A function with a codomain of MaybeBoolean
+LogicalFunction A predicate whose arguments are in the MaybeBoolean  domain, for example the domain of And is LogicalFunction
+
+Tensor Domains
+ComplexTensor A tensor whose elements are complex numbers
+RealTensor A tensor whose elements are real numbers
+IntegerTensor A tensor whose elements are integers
+LogicalTensor A tensor whose elements are 0 or 1
+Scalar A tensor of rank 0
+Vector
+Row
+Column
+A tensor of rank 1. The argument of the domain expression specifies the number of elements in the vector.
+Matrix A tensor of rank 2. The argument of the domain expression specifies the number of rows and columns in the matrix.
+Quaternion A  matrix of complex elements. Quaternions (https://en.wikipedia.org/wiki/Quaternion) are commonly used to represent vectors in 3D space ( )
+SquareMatrix A tensor with the same number of rows and columns
+MonomialMatrix A square matrix with exactly one non-zero entry in each row and column
+OrthogonalMatrix A real square matrix whose transpose is equal to its inverse:
+PermutationMatrix A square matrix with with exactly one non-zero entry in each row and column
+DiagonalMatrix A matrix in which the elements outside the main diagonal are zero
+IdentityMatrix A diagonal matrix whose diagonal elements are 1
+ZeroMatrix A matrix whose elements are 0
+SymmetricMatrix A real matrix that is equal to its transpose
+HermitianMatrix A complex matrix that is equal to its conjugate transpose
+
+Other Domains
+Domain Description
+
+Anything The universal domain, it contains all possible values
+Boolean True  or False
+Domain The domain of all the domains
+MaybeBoolean True  False  or Maybe
+Nothing The domain whose only member is the symbol Nothing
+String A string of Unicode characters
+Symbol A string used to represent the name of a constant, variable or function in a MathJSON expression
+
+Functions:
+[“Function”, list-of-variables_, body]
+
+[“Function”, variable, body]
+
+Create a Lambda-function (https://en.wikipedia.org/wiki/Anonymous_function), also called anonymous function.
+
+The first argument is a symbol or a list of symbols which are the bound variables (parameters) of the Lambda-function.
+
+The others arguments are expressions which are evaluated sequentially, or until a ["Return"]  expression is encountered.
+
+The ["Function"]  expression creates a new scope.
+
+To apply some arguments to a function expression, use ["Apply"] .
+
+[“Apply”, body, expr-1, …expr-n]
+
+Apply (https://en.wikipedia.org/wiki/Apply) a list of arguments to a lambda expression or function.
+
+The following wildcards in body are replaced as indicated
+
+\_  or \_1  : the first argument
+
+\_2  : the second argument
+
+\_3  : the third argument, etc…
+
+\_ : the sequence of arguments, so ["Length", "&#95;"]  is the number of arguments
+
+If body is a ["Function"]  expression, the named arguments of ["Function"]  are replaced by the wildcards.
+
+["Apply", ["Multiply", "\_", "\_"], 3] produces 9
+
+["Apply", ["Function", "x", ["Multiply", "x", "x"]], 3] produces 9
+
+[“Return”, expression]: If in an ["Function"]  expression, interupts the evaluation of the function. The value of the ["Function"] expression is expression
+
+Logic Constants: True, False, Maybe
+
+Logical Operators:
+- And
+- Or
+- Not
+- Equivalent
+- Implies
+
+Set functions:
+New sets can be defined using a set expression. A set expression is an expression with one of the following head functions.
+
+CartesianProduct: A.k.a the product set, the set direct product or cross product.
+Complement: The set of elements that are not in the set. If set is a numeric domain, the universe is assumed to be the set of all numbers
+Intersection: The set of elements that are in set1 and in set2
+Union: The set of elements that are in either set1 or set2
+SetMinus
+SymmetricDifference: Disjunctive union
+
+Special Functions:
+["Factorial", n]: calculates factorial of n, n!
+
+["Gamma", ]: where Gamma(n) = (n-1)!, Gamma is an extension of the factorial function, with its argument shifted by 1, to real and complex numbers.
+
+["Gamma", 5] produces 24
+
+["LogGamma", z]
+
+["SignGamma", z]
+
+Trigonometry Constants:
+- Degrees: Pi / 180 == 0.01745329251994329...
+- Pi: the numeric value of Pi =~ 3.14159265358979323...
+
+Trigonometric Functions:
+- Sin
+- Arcsin
+- Sinh
+- Arsinh
+- Cos
+- Arccos
+- Cosh
+- Arcosh
+- Tan
+- Arctan
+- Arctan2
+- Tanh
+- Artanh
+- Cot
+- Acot
+- Coth
+- Arcoth
+- Sec
+- Asec
+- Sech
+- Asech
+- Csc
+- Acsc
+- Csch
+- Acsch
+- FromPolarCoordinates
+- ToPolarCoordinates
+- Hypot
+- Haversine
+- InverseHaversine
+
+
+Using all of the MathJSON documentation I have just provided, please present a solution to the problem in MathJSON format.  Don't try to perform any intermediate math, that is, you can use numeric values you know, but should not assume any intermediate steps (averages, midpoint, etc.).  Always use the shorter, flat list representation rather than verbose object notation, e.g. ["Add", 1, 2] vs [{"fn": ["Add", {"num": 1}, {"num": 2}]}]
+
+Calculate the number of lightning strikes per minute on average across the the northern hemisphere, using values from known scientific estimates.
+
+Response format:
+Brief description of how you would go about formulating the problem, without performing any actual mathematical calculations.
+<mathjson>
+MathJSON formatted equation to represent the final equation.
+</mathjson>

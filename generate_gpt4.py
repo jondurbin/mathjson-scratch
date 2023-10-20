@@ -24,7 +24,7 @@ embedding_tokenizer = transformers.AutoTokenizer.from_pretrained("thenlper/gte-l
 index = faiss.IndexFlatL2(embedding_dimension)
 
 # Load items to generate.
-to_generate = [json.loads(line) for line in smart_open('https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/train.jsonl').readlines()]
+to_generate = [json.loads(line) for line in smart_open('https://raw.githubusercontent.com/openai/grade-school-math/master/grade_school_math/data/test.jsonl').readlines()]
 
 # Load the validated dataset.
 validated = json.loads(smart_open('https://huggingface.co/datasets/jondurbin/mathjson-alpha/resolve/main/conversations.json').read())

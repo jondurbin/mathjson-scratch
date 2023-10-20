@@ -1,0 +1,2 @@
+smart-open
+airoboros @ git+https://github.com/jondurbin/airoboros

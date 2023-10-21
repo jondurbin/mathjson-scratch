@@ -145,7 +145,7 @@ Available constants:
         prompt += "\n".join([
             'Question: ' + validated[idx]['question'],
             '\n',
-            validated[idx]['response'],
+            validated[idx]['answer'],
             '\n\n',
         ])
     prompt += "\n" + "\n".join([
@@ -172,22 +172,22 @@ Available constants:
         solution = json.loads(solution_str)
     except:
         print(f'Invalid JSON in output: {solution_str}')
-        return False, None
+        return False, None, expected_answer
     answer = None
     try:
         answer = mathjson.evaluate(solution)
     except Exception as exc:
         print(f'Evaluation fail: {exc}')
-        return False, None
+        return False, None, expected_answer
     data["answer"] = answer
     data["expected_answer"] = expected_answer
     data["original"] = item
     try:
         if round(expected_answer, 5) == round(answer, 5):
-            return True, data
+            return True, data, expected_answer
     except:
         ...
-    return False, data
+    return False, data, expected_answer
 
 # Evaluate.
 async def run():
